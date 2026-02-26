@@ -1,6 +1,6 @@
 # 扩散模型轨迹生成 (Diffusion for Action Sequence)
 
-基于 DDPM 的条件扩散模型：在 2D 平面上，给定当前状态 \(S_t\)，生成「从当前点朝向目标 (10,10)、并绕过障碍 (5,5)」的未来动作序列 \(A_0\)，用于轨迹控制。
+基于 DDPM 的条件扩散模型：在 2D 平面上，给定当前状态 $S_t$，生成「从当前点朝向目标 (10,10)、并绕过障碍 (5,5)」的未来动作序列 $A_0$，用于轨迹控制。
 
 ---
 
@@ -42,39 +42,39 @@ pip install torch numpy matplotlib
 
 ## 前向加噪公式（Noise Schedule）
 
-扩散步数 \(t = 1, \ldots, T\)，\(\beta_t\) 线性调度（如从 \(10^{-4}\) 到 \(0.02\)），定义：
+扩散步数 $t = 1, \ldots, T$，$\beta_t$ 线性调度（如从 $10^{-4}$ 到 $0.02$），定义：
 
-\[
+$$
 \alpha_t = 1 - \beta_t, \qquad \bar{\alpha}_t = \prod_{s=1}^{t} \alpha_s.
-\]
+$$
 
-**前向一步加噪**（从干净动作 \(A_0\) 得到带噪 \(A_t\)，\(\varepsilon \sim \mathcal{N}(0, I)\)）：
+**前向一步加噪**（从干净动作 $A_0$ 得到带噪 $A_t$，$\varepsilon \sim \mathcal{N}(0, I)$）：
 
-\[
+$$
 A_t = \sqrt{\bar{\alpha}_t}\, A_0 + \sqrt{1 - \bar{\alpha}_t}\, \varepsilon.
-\]
+$$
 
-训练时对每个样本随机采样 \(t\) 和 \(\varepsilon\)，用网络预测 \(\varepsilon\)，损失为 \(\mathcal{L} = \mathbb{E}\big[\|\varepsilon - \varepsilon_\theta(A_t, t, S_t)\|^2\big]\)（MSE）。
+训练时对每个样本随机采样 $t$ 和 $\varepsilon$，用网络预测 $\varepsilon$，损失为 $\mathcal{L} = \mathbb{E}[\|\varepsilon - \varepsilon_\theta(A_t, t, S_t)\|^2]$（MSE）。
 
 ---
 
 ## DDPM 反向公式（去噪采样）
 
-从 \(A_T \sim \mathcal{N}(0, I)\) 出发，按 \(t = T, T-1, \ldots, 1\) 逐步去噪。每步用网络预测 \(\hat{\varepsilon} = \varepsilon_\theta(A_t, t, S_t)\)，则 \(A_{t-1}\) 的**后验均值**为：
+从 $A_T \sim \mathcal{N}(0, I)$ 出发，按 $t = T, T-1, \ldots, 1$ 逐步去噪。每步用网络预测 $\hat{\varepsilon} = \varepsilon_\theta(A_t, t, S_t)$，则 $A_{t-1}$ 的**后验均值**为：
 
-\[
+$$
 \mu_t = \frac{1}{\sqrt{\alpha_t}} \left( A_t - \frac{\beta_t}{\sqrt{1 - \bar{\alpha}_t}}\, \hat{\varepsilon} \right).
-\]
+$$
 
 **方差**（DDPM 取值）：
 
-\[
+$$
 \sigma_t^2 = \frac{1 - \bar{\alpha}_{t-1}}{1 - \bar{\alpha}_t}\, \beta_t.
-\]
+$$
 
 **采样**：
-- 若 \(t > 1\)：\(A_{t-1} = \mu_t + \sigma_t\, z\)，其中 \(z \sim \mathcal{N}(0, I)\)；
-- 若 \(t = 1\)：\(A_0 = \mu_1\)（不再加噪）。
+- 若 $t > 1$：$A_{t-1} = \mu_t + \sigma_t\, z$，其中 $z \sim \mathcal{N}(0, I)$；
+- 若 $t = 1$：$A_0 = \mu_1$（不再加噪）。
 
 代码见 `noise.py`（前向）、`sample.py`（反向）。
 
